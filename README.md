@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kigumo Bendera Dorms
 
-## Getting Started
+Web-based boarding/dorm management system for Kigumo Bendera Senior School.
+Replaces a legacy MS Access system. Built with Next.js 14, TiDB Serverless (MySQL), Prisma, Auth0, and Tailwind CSS.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 18+
+- npm
+- [TiDB Serverless](https://tidbcloud.com) account (free tier)
+- [Auth0](https://auth0.com) account (free tier) — create a **Regular Web Application**
+
+## Local Setup
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy environment template
+cp .env.example .env.local
+
+# 3. Fill in .env.local with your TiDB connection string and Auth0 credentials
+
+# 4. Generate Prisma client
+npx prisma generate
+
+# 5. Push schema to TiDB (creates all tables)
+npx prisma db push
+
+# 6. Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | TiDB Serverless MySQL connection string |
+| `AUTH0_SECRET` | Random secret — run `openssl rand -hex 32` |
+| `AUTH0_BASE_URL` | App base URL (e.g. `http://localhost:3000`) |
+| `AUTH0_ISSUER_BASE_URL` | Auth0 tenant URL (e.g. `https://dev-xxx.auth0.com`) |
+| `AUTH0_CLIENT_ID` | Auth0 application client ID |
+| `AUTH0_CLIENT_SECRET` | Auth0 application client secret |
 
-## Learn More
+## Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework:** Next.js 14 (App Router), TypeScript
+- **Database:** TiDB Serverless via Prisma ORM
+- **Auth:** Auth0 (`@auth0/nextjs-auth0`)
+- **Styling:** Tailwind CSS
+- **Hosting:** Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Push to `main` → Vercel auto-deploys. Set all env vars in the Vercel project settings.

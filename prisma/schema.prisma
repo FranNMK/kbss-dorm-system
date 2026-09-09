@@ -1,0 +1,259 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum StudentStatus {
+  active
+  archived
+}
+
+enum BedStatus {
+  ok
+  needs_repair
+}
+
+enum UserRole {
+  admin
+  dorm_master
+  unassigned
+}
+
+enum SecretaryRole {
+  secretary
+  assistant_secretary
+}
+
+// ─────────────────────────────────────────────
+// AcademicYear
+// ─────────────────────────────────────────────
+
+/// Shared reference table for academic years.
+/// All year-scoped entities FK here instead of embedding a year string in each table.
+model AcademicYear {
+  yearId    Int     @id @default(autoincrement())
+  /// e.g. "2024/2025"
+  label     String  @unique @db.VarChar(20)
+  isCurrent Boolean @default(false)
+
+  students        Student[]
+  bedsAssignments BedsAssignment[]
+  dormSecretaries DormSecretary[]
+  dormCleaners    DormCleaner[]
+
+  @@map("AcademicYear")
+}
+
+// ─────────────────────────────────────────────
+// Student
+// ─────────────────────────────────────────────
+
+/// Core student record. Bed assignment lives in BedsAssignment — never stored here.
+/// C_Class values: F3, F4 (8-4-4) or G10, G11, G12 (CBC).
+/// Stream values:  S, N, L, B, V (senior forms) or 10M, 10B, 10N, 10S, 10L (Grade 10), etc.
+model Student {
+  stAdmNo    String        @id @db.VarChar(20)
+  stName     String        @db.VarChar(100)
+  /// Class code: F3 | F4 | G10 | G11 | G12
+  cClass     String        @db.VarChar(10)
+  /// Stream within the class, e.g. S, N, L, B, V, 10M, 10B …
+  stream     String        @db.VarChar(10)
+  yearId     Int
+  status     StudentStatus @default(active)
+  archivedAt DateTime?
+
+  year            AcademicYear     @relation(fields: [yearId], references: [yearId])
+  bedsAssignments BedsAssignment[]
+  dormSecretaries DormSecretary[]
+  dormCleaners    DormCleaner[]
+
+  @@index([cClass, stream])
+  @@index([status])
+  @@index([yearId])
+  @@map("Students")
+}
+
+// ─────────────────────────────────────────────
+// Dorm
+// ─────────────────────────────────────────────
+
+model Dorm {
+  dormCode String @id @db.VarChar(20)
+  dName    String @db.VarChar(100)
+  capacity Int
+  patron   String @db.VarChar(100)
+
+  cubes           Cube[]
+  beds            Bed[]
+  dormSecretaries DormSecretary[]
+  dormCleaners    DormCleaner[]
+
+  @@map("Dorms")
+}
+
+// ─────────────────────────────────────────────
+// Cube  (a physical block/section within a dorm)
+// ─────────────────────────────────────────────
+
+model Cube {
+  cubeId   Int    @id @default(autoincrement())
+  dormCode String @db.VarChar(20)
+  location String @db.VarChar(100)
+
+  dorm Dorm  @relation(fields: [dormCode], references: [dormCode])
+  beds Bed[]
+
+  @@index([dormCode])
+  @@map("Cubes")
+}
+
+// ─────────────────────────────────────────────
+// Bed
+// ─────────────────────────────────────────────
+
+/// NOTE: Prisma cannot express a cross-column CHECK constraint between
+/// cubeId and dormCode natively. The application layer (API route for
+/// POST /api/beds and PATCH /api/beds/[id]) MUST verify that the cube
+/// belongs to the same dorm as the bed before inserting/updating.
+/// The @@index([dormCode, cubeId]) speeds up that validation query.
+model Bed {
+  bedNo      String    @id @db.VarChar(20)
+  dormCode   String    @db.VarChar(20)
+  cubeId     Int
+  bedStatus  BedStatus @default(ok)
+  /// Derived from BedsAssignment — set true on assign, false on un-assign.
+  /// Do NOT allow direct user editing of this field.
+  isOccupied Boolean   @default(false)
+
+  dorm            Dorm             @relation(fields: [dormCode], references: [dormCode])
+  cube            Cube             @relation(fields: [cubeId], references: [cubeId])
+  bedsAssignments BedsAssignment[]
+
+  @@index([dormCode, isOccupied])
+  @@index([dormCode, cubeId])
+  @@index([cubeId])
+  @@map("Beds")
+}
+
+// ─────────────────────────────────────────────
+// BedsAssignment
+// ─────────────────────────────────────────────
+
+/// Allocation history record. Never hard-deleted.
+/// An open allocation has endDate = null.
+/// Closing an allocation sets endDate = today and Bed.isOccupied = false.
+model BedsAssignment {
+  assignId  Int       @id @default(autoincrement())
+  stAdmNo   String    @db.VarChar(20)
+  bedNo     String    @db.VarChar(20)
+  yearId    Int
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  student      Student      @relation(fields: [stAdmNo], references: [stAdmNo])
+  bed          Bed          @relation(fields: [bedNo], references: [bedNo])
+  academicYear AcademicYear @relation(fields: [yearId], references: [yearId])
+
+  @@index([stAdmNo, endDate])
+  @@index([bedNo, endDate])
+  @@index([yearId])
+  @@map("BedsAssignment")
+}
+
+// ─────────────────────────────────────────────
+// DormSecretary
+// ─────────────────────────────────────────────
+
+/// References an existing Student — never a duplicate person record.
+/// Unique per (stAdmNo, yearId, role): one secretary role per student per year.
+model DormSecretary {
+  id       Int           @id @default(autoincrement())
+  stAdmNo  String        @db.VarChar(20)
+  dormCode String        @db.VarChar(20)
+  yearId   Int
+  role     SecretaryRole @default(secretary)
+  isActive Boolean       @default(true)
+
+  student      Student      @relation(fields: [stAdmNo], references: [stAdmNo])
+  dorm         Dorm         @relation(fields: [dormCode], references: [dormCode])
+  academicYear AcademicYear @relation(fields: [yearId], references: [yearId])
+
+  @@unique([stAdmNo, yearId, role])
+  @@index([dormCode, yearId])
+  @@map("DormSecretaries")
+}
+
+// ─────────────────────────────────────────────
+// DormCleaner
+// ─────────────────────────────────────────────
+
+/// References an existing Student — never a duplicate person record.
+/// Unique per (stAdmNo, yearId): one active cleaner role per student per year.
+model DormCleaner {
+  id           Int     @id @default(autoincrement())
+  stAdmNo      String  @db.VarChar(20)
+  dormCode     String  @db.VarChar(20)
+  yearId       Int
+  areaAssigned String  @db.VarChar(100)
+  isActive     Boolean @default(true)
+
+  student      Student      @relation(fields: [stAdmNo], references: [stAdmNo])
+  dorm         Dorm         @relation(fields: [dormCode], references: [dormCode])
+  academicYear AcademicYear @relation(fields: [yearId], references: [yearId])
+
+  @@unique([stAdmNo, yearId])
+  @@index([dormCode, yearId])
+  @@map("DormCleaners")
+}
+
+// ─────────────────────────────────────────────
+// AuditLog
+// ─────────────────────────────────────────────
+
+/// Written for every destructive/bulk action: promote, demote, archive, role_change.
+/// Never deleted.
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  /// Auth0 sub or user email of the actor
+  userId      String   @db.VarChar(100)
+  /// "promote" | "demote" | "archive" | "role_change" | "unarchive"
+  action      String   @db.VarChar(50)
+  targetTable String   @db.VarChar(50)
+  rowCount    Int
+  timestamp   DateTime @default(now())
+  /// Optional JSON payload with before/after snapshot or filter criteria used
+  details     Json?
+
+  @@index([timestamp])
+  @@index([userId])
+  @@map("AuditLog")
+}
+
+// ─────────────────────────────────────────────
+// User  (app users — school staff only)
+// ─────────────────────────────────────────────
+
+/// Created/upserted on first Auth0 login.
+/// dormScope is a JSON array of dormCodes the Dorm Master is scoped to,
+/// e.g. ["DORM_A", "DORM_B"]. Null means no scope restriction (admin).
+model User {
+  id        Int      @id @default(autoincrement())
+  auth0Sub  String   @unique @db.VarChar(100)
+  email     String   @unique @db.VarChar(255)
+  role      UserRole @default(unassigned)
+  /// null = no restriction (admin); string[] JSON array for dorm_master scope
+  dormScope Json?
+
+  @@map("Users")
+}
