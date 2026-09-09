@@ -184,7 +184,7 @@ _Record any deviations here after implementation._
 
 ## Sub-Task 4 — Students Module (CRUD + Search)
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ### Intent
 Implement the core Students data-entry screen. Students are the central entity;
