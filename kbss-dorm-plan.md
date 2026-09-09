@@ -234,7 +234,7 @@ _Record any deviations here after implementation._
 
 ## Sub-Task 5 — Dorms / Cubes / Beds Modules
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ### Intent
 Implement CRUD for the three physical-infrastructure entities. Beds are the

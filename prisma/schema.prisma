@@ -244,16 +244,22 @@ model AuditLog {
 // User  (app users — school staff only)
 // ─────────────────────────────────────────────
 
-/// Created/upserted on first Auth0 login.
+/// Staff accounts created by Admin. Passwords are bcrypt-hashed server-side.
 /// dormScope is a JSON array of dormCodes the Dorm Master is scoped to,
-/// e.g. ["DORM_A", "DORM_B"]. Null means no scope restriction (admin).
+/// e.g. ["DORM_A", "DORM_B"]. Null means no restriction (admin).
 model User {
-  id        Int      @id @default(autoincrement())
-  auth0Sub  String   @unique @db.VarChar(100)
-  email     String   @unique @db.VarChar(255)
-  role      UserRole @default(unassigned)
+  id           Int       @id @default(autoincrement())
+  email        String    @unique @db.VarChar(255)
+  name         String    @db.VarChar(100)
+  passwordHash String    @db.VarChar(255)
+  role         UserRole  @default(unassigned)
   /// null = no restriction (admin); string[] JSON array for dorm_master scope
-  dormScope Json?
+  dormScope    Json?
+  /// Password reset token (random hex) and its expiry timestamp
+  resetToken   String?   @db.VarChar(100)
+  resetExpiry  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@map("Users")
 }

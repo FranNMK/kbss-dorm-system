@@ -1,4 +1,4 @@
-import { auth0 } from "@/lib/auth0";
+import { getSession } from "@/lib/session";
 import { getSessionRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import Link from "next/link";
@@ -101,10 +101,10 @@ const MENU_CARDS: MenuCard[] = [
 ];
 
 export default async function DashboardPage() {
-  const session = await auth0.getSession();
+  const session = await getSession();
   const role = await getSessionRole();
   const isAdmin = role === UserRole.admin;
-  const userName = session?.user?.name ?? session?.user?.email ?? "Staff";
+  const userName = session?.name ?? session?.email ?? "Staff";
 
   const cards = MENU_CARDS.filter((c) => !c.adminOnly || isAdmin);
 

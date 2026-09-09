@@ -58,7 +58,7 @@ export default function PublicNav() {
             );
           })}
           <a
-            href="/auth/login"
+            href="/login"
             className="ml-3 bg-accent text-primary text-sm font-semibold px-4 py-1.5 rounded-sm hover:bg-accent/90 transition-colors"
           >
             Login
@@ -105,7 +105,7 @@ export default function PublicNav() {
             );
           })}
           <a
-            href="/auth/login"
+            href="/login"
             className="mt-2 bg-accent text-primary text-sm font-semibold px-4 py-2 rounded-sm text-center hover:bg-accent/90 transition-colors"
           >
             Login

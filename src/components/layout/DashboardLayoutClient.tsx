@@ -72,12 +72,15 @@ export function DashboardLayoutClient({
           <span className="hidden sm:inline-block bg-accent text-primary text-xs font-semibold px-2 py-0.5 rounded-sm uppercase">
             {userRole.replace("_", " ")}
           </span>
-          <a
-            href="/auth/logout"
-            className="text-sm bg-neutral/10 hover:bg-neutral/20 text-neutral px-3 py-1 rounded-sm transition-colors"
+          <button
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              window.location.href = "/login";
+            }}
+            className="text-sm bg-neutral/10 hover:bg-neutral/20 text-neutral px-3 py-1 rounded-sm transition-colors cursor-pointer"
           >
             Logout
-          </a>
+          </button>
         </div>
       </header>
 

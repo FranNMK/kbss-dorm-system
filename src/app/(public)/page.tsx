@@ -63,7 +63,7 @@ export default function HomePage() {
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <a
-            href="/auth/login"
+            href="/login"
             className="bg-primary text-neutral font-semibold px-6 py-2.5 rounded-sm hover:bg-primary/90 transition-colors text-sm"
           >
             Staff Login →

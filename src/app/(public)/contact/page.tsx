@@ -97,7 +97,7 @@ export default function ContactPage() {
           coordinator or Deputy Principal to have your role assigned.
         </p>
         <a
-          href="/auth/login"
+          href="/login"
           className="inline-block mt-4 bg-primary text-neutral text-sm font-semibold px-5 py-2 rounded-sm hover:bg-primary/90 transition-colors"
         >
           Go to Login →

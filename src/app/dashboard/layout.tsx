@@ -1,13 +1,5 @@
-/**
- * Dashboard layout — server component.
- *
- * - Checks Auth0 session; redirects to /auth/login if not authenticated.
- * - Extracts role from session; redirects to /dashboard/unauthorized if role = unassigned.
- * - Syncs the user record to the DB on every render (cheap upsert — idempotent).
- * - Passes session metadata to the client layout shell.
- */
 import { redirect } from "next/navigation";
-import { auth0 } from "@/lib/auth0";
+import { getSession } from "@/lib/session";
 import { getSessionRole } from "@/lib/auth";
 import { DashboardLayoutClient } from "@/components/layout/DashboardLayoutClient";
 import { UserRole } from "@prisma/client";
@@ -17,10 +9,10 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth0.getSession();
+  const session = await getSession();
 
   if (!session) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const role = await getSessionRole();
@@ -29,12 +21,10 @@ export default async function DashboardLayout({
     redirect("/dashboard/unauthorized");
   }
 
-  const { user } = session;
-
   return (
     <DashboardLayoutClient
-      userEmail={user.email as string}
-      userName={(user.name ?? user.email) as string}
+      userEmail={session.email}
+      userName={session.name}
       userRole={role}
     >
       {children}

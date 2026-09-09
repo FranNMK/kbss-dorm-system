@@ -1,57 +1,66 @@
 /**
- * Server-side auth helpers.
+ * Server-side auth helpers — custom session-based auth (no Auth0).
  *
- * requireRole() — call at the top of every API route handler that needs
- * authorization. Returns a 403 NextResponse if the caller's role is not
- * in the allowed list; returns null if the caller is authorized.
+ * requireRole() — call at the top of every API route handler.
+ * Returns a 403 NextResponse if the caller's role is not in the allowed list.
+ * Returns null if the caller is authorized.
  *
  * Usage:
- *   const denied = await requireRole(request, ["admin"]);
+ *   const denied = await requireRole(["admin"]);
  *   if (denied) return denied;
  */
 import { NextResponse } from "next/server";
-import { auth0 } from "./auth0";
 import { UserRole } from "@prisma/client";
-import { mapRawRole, checkDormScope } from "./utils";
+import { getSession } from "./session";
+import { checkDormScope } from "./utils";
 
 export { checkDormScope };
 export type { UserRole };
 
 /**
- * Extract the role from the Auth0 session.
- * The role is stored in app_metadata.role via an Auth0 Action/Rule.
- * Unknown role strings are safely mapped to "unassigned".
+ * Extract the role from the current session.
+ * Returns "unassigned" if there is no valid session.
  */
 export async function getSessionRole(): Promise<UserRole> {
-  const session = await auth0.getSession();
+  const session = await getSession();
   if (!session) return UserRole.unassigned;
-  // Auth0 Action sets app_metadata.role → surfaces as a custom claim
-  const rawRole: string | undefined =
-    session.user["app_metadata"]?.role ??
-    session.user["https://kbss-dorms/role"];
-  return mapRawRole(rawRole);
+  return session.role;
+}
+
+/**
+ * Get the full session user object.
+ * Returns null if not authenticated.
+ */
+export async function getSessionUser(): Promise<{
+  userId: number;
+  email: string;
+  name: string;
+  role: UserRole;
+} | null> {
+  const session = await getSession();
+  if (!session) return null;
+  return {
+    userId: session.userId,
+    email: session.email,
+    name: session.name,
+    role: session.role,
+  };
 }
 
 /**
  * Require the caller to have one of the specified roles.
  * Returns a 403 NextResponse if unauthorized, or null if OK.
- *
- * @example
- *   const denied = await requireRole(["admin"]);
- *   if (denied) return denied;
  */
 export async function requireRole(
   allowedRoles: UserRole[]
 ): Promise<NextResponse | null> {
-  const session = await auth0.getSession();
+  const session = await getSession();
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized — please log in" }, { status: 401 });
   }
 
-  const role = await getSessionRole();
-
-  if (!allowedRoles.includes(role)) {
+  if (!allowedRoles.includes(session.role)) {
     return NextResponse.json(
       { error: "Forbidden — insufficient role" },
       { status: 403 }
@@ -61,27 +70,4 @@ export async function requireRole(
   return null;
 }
 
-/**
- * Get the current authenticated user's Auth0 subject (sub) and email.
- * Returns null if not authenticated.
- */
-export async function getSessionUser(): Promise<{
-  sub: string;
-  email: string;
-  name: string;
-  role: UserRole;
-} | null> {
-  const session = await auth0.getSession();
-  if (!session) return null;
-
-  const role = await getSessionRole();
-
-  return {
-    sub: session.user.sub as string,
-    email: session.user.email as string,
-    name: (session.user.name ?? session.user.email) as string,
-    role,
-  };
-}
-
-// checkDormScope is a pure utility — imported from ./utils and re-exported above
+export { checkDormScope as checkDormScopeHelper };
