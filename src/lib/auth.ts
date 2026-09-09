@@ -12,23 +12,24 @@
 import { NextResponse } from "next/server";
 import { auth0 } from "./auth0";
 import { UserRole } from "@prisma/client";
+import { mapRawRole, checkDormScope } from "./utils";
 
+export { checkDormScope };
 export type { UserRole };
 
 /**
  * Extract the role from the Auth0 session.
  * The role is stored in app_metadata.role via an Auth0 Action/Rule.
- * Falls back to "unassigned" if not present.
+ * Unknown role strings are safely mapped to "unassigned".
  */
 export async function getSessionRole(): Promise<UserRole> {
   const session = await auth0.getSession();
   if (!session) return UserRole.unassigned;
   // Auth0 Action sets app_metadata.role → surfaces as a custom claim
-  const role =
-    (session.user["app_metadata"]?.role as UserRole) ??
-    (session.user["https://kbss-dorms/role"] as UserRole) ??
-    UserRole.unassigned;
-  return role;
+  const rawRole: string | undefined =
+    session.user["app_metadata"]?.role ??
+    session.user["https://kbss-dorms/role"];
+  return mapRawRole(rawRole);
 }
 
 /**
@@ -83,19 +84,4 @@ export async function getSessionUser(): Promise<{
   };
 }
 
-/**
- * Require the request to come from a Dorm Master whose DormScope
- * includes the given dormCode. Admins always pass.
- *
- * @param dormCode  The dorm being accessed
- * @param dormScope The user's dormScope from the Users table (parsed JSON array)
- */
-export function checkDormScope(
-  role: UserRole,
-  dormCode: string,
-  dormScope: string[] | null
-): boolean {
-  if (role === UserRole.admin) return true;
-  if (!dormScope) return false;
-  return dormScope.includes(dormCode);
-}
+// checkDormScope is a pure utility — imported from ./utils and re-exported above

@@ -29,7 +29,7 @@ for the implementer to record any SRS deviations discovered.
 
 ## Sub-Task 1 — Project Scaffold
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ### Intent
 Stand up the repo skeleton: Next.js 14 App Router + TypeScript + Tailwind CSS +
@@ -84,7 +84,7 @@ _Record any deviations here after implementation._
 
 ## Sub-Task 2 — Auth0 Integration + Role-Based Route Protection
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ### Intent
 Wire Auth0 Universal Login, extract the `app_metadata.role` custom claim,

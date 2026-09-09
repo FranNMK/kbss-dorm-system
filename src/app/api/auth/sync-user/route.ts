@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { auth0 } from "@/lib/auth0";
 import { prisma } from "@/lib/db";
 import { UserRole } from "@prisma/client";
+import { mapRawRole } from "@/lib/utils";
 
 export async function POST() {
   const session = await auth0.getSession();
@@ -21,17 +22,11 @@ export async function POST() {
   const { sub, email } = session.user as { sub: string; email: string };
 
   // Extract role from Auth0 custom claim (set via Auth0 Action)
-  const rawRole: string =
+  const rawRole: string | undefined =
     session.user["app_metadata"]?.role ??
-    session.user["https://kbss-dorms/role"] ??
-    "unassigned";
+    session.user["https://kbss-dorms/role"];
 
-  const role: UserRole =
-    rawRole === "admin"
-      ? UserRole.admin
-      : rawRole === "dorm_master"
-        ? UserRole.dorm_master
-        : UserRole.unassigned;
+  const role: UserRole = mapRawRole(rawRole);
 
   const user = await prisma.user.upsert({
     where: { auth0Sub: sub },
