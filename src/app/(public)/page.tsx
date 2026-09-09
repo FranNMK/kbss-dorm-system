@@ -1,43 +1,43 @@
 import type { Metadata } from "next";
 import Carousel, { type CarouselSlide } from "@/components/Carousel";
 
+// Local school images — statically imported so Next.js optimises them
+import img1 from "./img/img1.jpg";
+import img2 from "./img/img2.jpg";
+import img3 from "./img/img3.png";
+import img4 from "./img/img4.webp";
+import img5 from "./img/img5.jpeg";
+
 export const metadata: Metadata = {
   title: "Kigumo Bendera Senior School — Dorm Management",
   description:
     "Web-based boarding dorm management system for Kigumo Bendera Senior School, Kenya.",
 };
 
-// 6 royalty-free Unsplash images — school will replace with actual photos.
-// Each photo is education/campus themed. Alt text describes the scene.
 const SLIDES: CarouselSlide[] = [
   {
-    src: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1400&q=80",
-    alt: "Students in a classroom with rows of desks and large windows",
-    caption: "Excellence in Education",
+    src: img1,
+    alt: "Kigumo Bendera Senior School campus — school grounds and buildings",
+    caption: "Welcome to Kigumo Bendera Senior School",
   },
   {
-    src: "https://images.unsplash.com/photo-1562774053-701939374585?w=1400&q=80",
-    alt: "School campus buildings surrounded by green trees under a blue sky",
+    src: img2,
+    alt: "School facilities at Kigumo Bendera Senior School",
     caption: "Our Campus",
   },
   {
-    src: "https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?w=1400&q=80",
-    alt: "Students in school uniform walking along a campus pathway",
+    src: img3,
+    alt: "Students at Kigumo Bendera Senior School",
     caption: "Student Life at Kigumo Bendera",
   },
   {
-    src: "https://images.unsplash.com/photo-1555431189-0fabf2667795?w=1400&q=80",
-    alt: "Rows of neatly made dormitory beds in a school boarding facility",
+    src: img4,
+    alt: "Dormitory facilities at Kigumo Bendera Senior School",
     caption: "Comfortable Boarding Facilities",
   },
   {
-    src: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=1400&q=80",
-    alt: "Students studying together at a library table with open books",
-    caption: "A Culture of Learning",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1400&q=80",
-    alt: "University building exterior with stairs and students walking in",
+    src: img5,
+    alt: "Kigumo Bendera Senior School — academic excellence and discipline",
     caption: "Building Tomorrow's Leaders",
   },
 ];

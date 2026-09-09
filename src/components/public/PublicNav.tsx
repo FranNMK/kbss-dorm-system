@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import logo from "@/app/(public)/img/Logo.jpeg";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -16,13 +18,25 @@ export default function PublicNav() {
 
   return (
     <header className="bg-primary text-neutral">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        {/* Logo / wordmark */}
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+
+        {/* Logo + school name */}
         <Link
           href="/"
-          className="font-bold text-base tracking-wide hover:text-accent transition-colors"
+          className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
         >
-          Kigumo Bendera Dorms
+          <Image
+            src={logo}
+            alt="Kigumo Bendera Senior School crest"
+            width={38}
+            height={38}
+            className="rounded-full object-cover flex-shrink-0"
+            priority
+          />
+          <span className="font-bold text-sm md:text-base tracking-wide leading-tight">
+            Kigumo Bendera<br className="hidden sm:block" />
+            <span className="text-accent text-xs font-medium md:text-sm"> Dorms</span>
+          </span>
         </Link>
 
         {/* Desktop nav */}

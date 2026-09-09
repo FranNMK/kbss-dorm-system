@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 export interface CarouselSlide {
-  src: string;
+  /** Accepts a Next.js static import (StaticImageData) or a plain URL string */
+  src: StaticImageData | string;
   alt: string;
   caption?: string;
 }

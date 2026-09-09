@@ -135,7 +135,7 @@ _Record any deviations here after implementation._
 
 ## Sub-Task 3 — Homepage with Carousel
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ### Intent
 Build the public-facing homepage that visitors and unauthenticated staff see first.
