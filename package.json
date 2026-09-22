@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --no-coverage",
-    "test:watch": "jest --watch",
+    "test": "jest --config jest.config.js --no-coverage",
+    "test:watch": "jest --config jest.config.js --watch",
     "postinstall": "prisma generate --schema=prisma/schema.prisma || exit 0"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "@prisma/client": "5.22.0",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
+    "exceljs": "^4.4.0",
     "jose": "^6.2.12",
     "next": "14.2.35",
     "prisma": "5.22.0",

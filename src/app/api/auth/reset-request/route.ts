@@ -13,7 +13,6 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM ?? "noreply@kbssschool.ac.ke";
 const APP_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
 
@@ -41,7 +40,8 @@ export async function POST(request: NextRequest) {
 
     const resetLink = `${APP_BASE_URL}/reset-password?token=${rawToken}`;
 
-    // Send email via Resend
+    // Send email via Resend — instantiated lazily so build-time env is not required
+    const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: FROM,
       to: user.email,

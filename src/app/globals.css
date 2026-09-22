@@ -6,3 +6,69 @@ body {
   background-color: #FDFDFC;
   color: #1B1B18;
 }
+
+/* ── Print stylesheet ───────────────────────────────────────────────────── */
+@media print {
+  /* Hide everything that's not report content */
+  nav,
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show the print-only header block */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset page background to white */
+  body,
+  main {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  /* Full-width tables with visible borders */
+  .print-table {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .print-table table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #ccc !important;
+    padding: 4px 8px !important;
+    font-size: 10pt !important;
+  }
+
+  .print-table thead {
+    background: #14213d !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Avoid page breaks inside rows */
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* Remove link underlines */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+}
+
+/* Hidden on screen; shown only when printing */
+.print-only {
+  display: none;
+}

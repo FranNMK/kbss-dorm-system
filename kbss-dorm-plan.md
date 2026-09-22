@@ -281,7 +281,7 @@ _Record any deviations here after implementation._
 
 ## Sub-Task 6 — Bed Allocation Module
 
-**Status:** [ ] pending
+**Status:** [x] done
 
 ### Intent
 Implement the core operational workflow: assigning a student to a bed, and
