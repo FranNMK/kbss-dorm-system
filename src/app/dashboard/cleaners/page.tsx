@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { EmptyState, LoadingRows, LoadingCards } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Cleaner {
   id: number;
@@ -237,25 +238,30 @@ export default function CleanersPage() {
   const [removing, setRemoving] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 50;
+
   useEffect(() => {
     Promise.all([
       fetch("/api/academic-years").then((r) => r.json()),
-      fetch("/api/dorms").then((r) => r.json()),
+      fetch("/api/dorms?limit=200").then((r) => r.json()),
     ])
-      .then(([y, d]) => { setYears(y); setDorms(d); })
+      .then(([y, d]) => { setYears(y); setDorms(d.dorms ?? d); })
       .catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
     if (filterDorm) params.set("dormCode", filterDorm);
     if (filterYear) params.set("yearId", filterYear);
     const res = await fetch(`/api/cleaners?${params}`);
     const data = await res.json();
-    setCleaners(Array.isArray(data) ? data : []);
+    setCleaners(data.data ?? (Array.isArray(data) ? data : []));
+    setTotal(data.total ?? (data.data ?? data).length);
     setLoading(false);
-  }, [filterDorm, filterYear]);
+  }, [filterDorm, filterYear, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -341,11 +347,18 @@ export default function CleanersPage() {
           ))}
         </select>
         <span className="self-center text-xs text-neutral-text/50 ml-auto">
-          {loading
-            ? "Loading…"
-            : `${cleaners.length} active assignment${cleaners.length !== 1 ? "s" : ""}`}
+          {loading ? "Loading…" : `${total} active assignment${total !== 1 ? "s" : ""}`}
         </span>
       </div>
+
+      {/* Top pagination */}
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
 
       {/* Desktop table */}
       <div className="hidden md:block border border-primary/15 rounded-sm overflow-hidden">
@@ -440,6 +453,13 @@ export default function CleanersPage() {
           ))
         )}
       </div>
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
     </div>
   );
 }

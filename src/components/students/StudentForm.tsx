@@ -14,6 +14,7 @@ interface StudentFormData {
   stName: string;
   cClass: string;
   stream: string;
+  assessmentNo: string;
   yearId: number | "";
 }
 
@@ -23,12 +24,16 @@ interface StudentFormProps {
   mode: "create" | "edit";
 }
 
+const CBC_CLASSES = new Set(["G10", "G11", "G12"]);
+// G10 assessment number is optional; G11 and G12 require it
+const ASSESSMENT_REQUIRED_CLASSES = new Set(["G11", "G12"]);
+
 const STREAM_OPTIONS: Record<string, string[]> = {
   F3: ["S", "N", "L", "B", "V"],
   F4: ["S", "N", "L", "B", "V"],
-  G10: ["10M", "10B", "10N", "10S", "10L"],
-  G11: ["11M", "11B", "11N", "11S", "11L"],
-  G12: ["12M", "12B", "12N", "12S", "12L"],
+  G10: ["M", "B", "N", "S", "L"],
+  G11: ["M", "B", "N", "S", "L"],
+  G12: ["M", "B", "N", "S", "L"],
 };
 
 export default function StudentForm({ defaultValues, mode }: StudentFormProps) {
@@ -39,6 +44,7 @@ export default function StudentForm({ defaultValues, mode }: StudentFormProps) {
     stName: defaultValues?.stName ?? "",
     cClass: defaultValues?.cClass ?? "",
     stream: defaultValues?.stream ?? "",
+    assessmentNo: defaultValues?.assessmentNo ?? "",
     yearId: defaultValues?.yearId ?? "",
   });
 
@@ -64,6 +70,7 @@ export default function StudentForm({ defaultValues, mode }: StudentFormProps) {
   }, [mode]);
 
   const streamOptions = form.cClass ? (STREAM_OPTIONS[form.cClass] ?? []) : [];
+  const isCBC = CBC_CLASSES.has(form.cClass);
 
   function set<K extends keyof StudentFormData>(key: K, value: StudentFormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -78,6 +85,8 @@ export default function StudentForm({ defaultValues, mode }: StudentFormProps) {
     if (!form.cClass) e.cClass = "Class is required";
     if (!form.stream) e.stream = "Stream is required";
     if (!form.yearId) e.yearId = "Academic year is required";
+    if (ASSESSMENT_REQUIRED_CLASSES.has(form.cClass) && !form.assessmentNo.trim())
+      e.assessmentNo = "Assessment number is required for G11 and G12";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -102,6 +111,7 @@ export default function StudentForm({ defaultValues, mode }: StudentFormProps) {
           stName: form.stName.trim(),
           cClass: form.cClass,
           stream: form.stream,
+          assessmentNo: isCBC ? form.assessmentNo.trim() || null : null,
           yearId: Number(form.yearId),
         }),
       });
@@ -179,6 +189,28 @@ export default function StudentForm({ defaultValues, mode }: StudentFormProps) {
           </optgroup>
         </select>
       </Field>
+
+      {/* Assessment Number — CBC only (required for G11/G12, optional for G10) */}
+      {isCBC && (
+        <Field
+          label="Assessment Number"
+          error={errors.assessmentNo}
+          required={ASSESSMENT_REQUIRED_CLASSES.has(form.cClass)}
+        >
+          <input
+            type="text"
+            value={form.assessmentNo}
+            onChange={(e) => set("assessmentNo", e.target.value)}
+            placeholder="e.g. A000719431"
+            className={inputClass(!!errors.assessmentNo)}
+          />
+          <p className="text-xs text-neutral-text/40 mt-1">
+            {ASSESSMENT_REQUIRED_CLASSES.has(form.cClass)
+              ? "Required for Grade 11 and 12 students."
+              : "Optional for Grade 10 students."}
+          </p>
+        </Field>
+      )}
 
       {/* Stream */}
       <Field label="Stream" error={errors.stream} required>

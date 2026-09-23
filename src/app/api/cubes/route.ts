@@ -1,8 +1,8 @@
 /**
- * GET  /api/cubes  — list cubes, optionally filtered by dormCode
+ * GET  /api/cubes  — list cubes, optionally filtered by dormCode (paginated)
  * POST /api/cubes  — create a new cube
  *
- * Query params: dormCode
+ * Query params: dormCode, page (default 1), limit (default 50)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -13,18 +13,29 @@ export async function GET(request: NextRequest) {
   const denied = await requireRole([UserRole.admin, UserRole.dorm_master]);
   if (denied) return denied;
 
-  const dormCode = request.nextUrl.searchParams.get("dormCode");
+  const sp = request.nextUrl.searchParams;
+  const dormCode = sp.get("dormCode") || undefined;
+  const page = Math.max(1, parseInt(sp.get("page") ?? "1"));
+  const limit = Math.min(100, parseInt(sp.get("limit") ?? "50"));
+  const skip = (page - 1) * limit;
 
-  const cubes = await prisma.cube.findMany({
-    where: dormCode ? { dormCode } : undefined,
-    orderBy: [{ dormCode: "asc" }, { location: "asc" }],
-    include: {
-      dorm: { select: { dName: true } },
-      _count: { select: { beds: true } },
-    },
-  });
+  const where = dormCode ? { dormCode } : undefined;
 
-  return NextResponse.json(cubes);
+  const [cubes, total] = await Promise.all([
+    prisma.cube.findMany({
+      where,
+      orderBy: [{ dormCode: "asc" }, { location: "asc" }],
+      include: {
+        dorm: { select: { dName: true } },
+        _count: { select: { beds: true } },
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.cube.count({ where }),
+  ]);
+
+  return NextResponse.json({ cubes, total, page, limit });
 }
 
 export async function POST(request: NextRequest) {

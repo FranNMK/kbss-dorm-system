@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { EmptyState, LoadingRows, LoadingCards } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface User {
   id: number;
@@ -191,14 +192,19 @@ export default function UsersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 50;
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/admin/users");
+    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
+    const res = await fetch(`/api/admin/users?${params}`);
     const data = await res.json();
-    setUsers(Array.isArray(data) ? data : []);
+    setUsers(data.users ?? (Array.isArray(data) ? data : []));
+    setTotal(data.total ?? (data.users ?? data).length);
     setLoading(false);
-  }, []);
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -234,6 +240,15 @@ export default function UsersPage() {
           {error} <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
         </div>
       )}
+
+      {/* Top pagination */}
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
 
       {/* Desktop table */}
       <div className="hidden md:block border border-primary/15 rounded-sm overflow-hidden">
@@ -313,6 +328,13 @@ export default function UsersPage() {
           </div>
         ))}
       </div>
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
     </div>
   );
 }

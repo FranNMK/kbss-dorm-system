@@ -8,23 +8,26 @@ import { requireRole, getSessionUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const denied = await requireRole([UserRole.admin]);
   if (denied) return denied;
 
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      dormScope: true,
-      createdAt: true,
-    },
-    orderBy: [{ role: "asc" }, { name: "asc" }],
-  });
+  const sp = request.nextUrl.searchParams;
+  const page = Math.max(1, parseInt(sp.get("page") ?? "1"));
+  const limit = Math.min(100, parseInt(sp.get("limit") ?? "50"));
+  const skip = (page - 1) * limit;
 
-  return NextResponse.json(users);
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      select: { id: true, email: true, name: true, role: true, dormScope: true, createdAt: true },
+      orderBy: [{ role: "asc" }, { name: "asc" }],
+      skip,
+      take: limit,
+    }),
+    prisma.user.count(),
+  ]);
+
+  return NextResponse.json({ users, total, page, limit });
 }
 
 export async function POST(request: NextRequest) {

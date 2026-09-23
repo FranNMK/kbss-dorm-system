@@ -107,6 +107,7 @@ export default async function EditStudentPage({ params }: Props) {
           stName: student.stName,
           cClass: student.cClass,
           stream: student.stream,
+          assessmentNo: student.assessmentNo ?? "",
           yearId: student.year.yearId,
         }}
       />

@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/secretaries", label: "Dorm Secretaries" },
   { href: "/dashboard/cleaners", label: "Dorm Cleaners" },
   { href: "/dashboard/reports", label: "Reports" },
+  { href: "/dashboard/admin/academic-years", label: "Academic Years", adminOnly: true },
   { href: "/dashboard/admin/promote", label: "Promote Students", adminOnly: true },
   { href: "/dashboard/admin/demote", label: "Demote Students", adminOnly: true },
   { href: "/dashboard/admin/archive", label: "Archive Students", adminOnly: true },
@@ -47,7 +48,7 @@ export function DashboardLayoutClient({
   const visibleNav = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral">
+    <div className="h-screen flex flex-col bg-neutral overflow-hidden">
       {/* Top bar */}
       <header className="bg-primary text-neutral h-14 flex items-center px-4 gap-4 flex-shrink-0">
         {/* Mobile hamburger */}
@@ -84,7 +85,7 @@ export function DashboardLayoutClient({
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         {/* Sidebar overlay on mobile */}
         {sidebarOpen && (
           <div
@@ -93,14 +94,14 @@ export function DashboardLayoutClient({
           />
         )}
 
-        {/* Sidebar */}
+        {/* Sidebar — stays fixed while main content scrolls */}
         <aside
           className={`
-            fixed md:static z-30 top-14 left-0 bottom-0 w-64
-            bg-primary text-neutral flex flex-col
+            fixed md:relative z-30 top-14 md:top-0 left-0 bottom-0 w-64
+            bg-primary text-neutral flex flex-col flex-shrink-0
             transform transition-transform duration-200
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-            md:translate-x-0 md:flex
+            md:translate-x-0 md:flex md:h-full
           `}
         >
           <nav className="flex-1 overflow-y-auto py-4">
@@ -142,7 +143,7 @@ export function DashboardLayoutClient({
           </nav>
         </aside>
 
-        {/* Main content */}
+        {/* Main content — only this region scrolls */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
     </div>

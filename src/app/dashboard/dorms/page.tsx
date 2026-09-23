@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { EntityTable, type Column } from "@/components/ui/EntityTable";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Dorm {
   dormCode: string;
@@ -102,14 +103,19 @@ export default function DormsPage() {
   const [dorms, setDorms] = useState<Dorm[]>([]);
   const [loading, setLoading] = useState(true);
   const [panel, setPanel] = useState<{ mode: "create" | "edit"; dorm?: Dorm } | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 50;
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/dorms");
+    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
+    const res = await fetch(`/api/dorms?${params}`);
     const data = await res.json();
-    setDorms(data);
+    setDorms(data.dorms ?? data);
+    setTotal(data.total ?? (data.dorms ?? data).length);
     setLoading(false);
-  }, []);
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -122,8 +128,17 @@ export default function DormsPage() {
     { key: "beds", label: "Beds", render: (d) => d._count.beds, mobileHide: true },
     {
       key: "actions", label: "", render: (d) => (
-        <button onClick={(e) => { e.stopPropagation(); setPanel({ mode: "edit", dorm: d }); }}
-          className="text-xs text-primary underline hover:text-accent transition-colors">Edit</button>
+        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => setPanel({ mode: "edit", dorm: d })}
+            className="text-xs text-primary underline hover:text-accent transition-colors">Edit</button>
+          <DeleteButton
+            endpoint={`/api/dorms/${d.dormCode}`}
+            label={d.dName}
+            cubeCount={d._count.cubes}
+            bedCount={d._count.beds}
+            onDeleted={load}
+          />
+        </div>
       ),
     },
   ];
@@ -154,8 +169,22 @@ export default function DormsPage() {
         </div>
       )}
 
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
       <EntityTable columns={COLUMNS} rows={dorms} rowKey={(d) => d.dormCode} loading={loading}
         emptyIcon="🏠" emptyTitle="No dormitories yet" emptyDescription="Add your first dorm to get started." />
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
     </div>
   );
 }
@@ -172,4 +201,87 @@ function FormRow({ label, required, children }: { label: string; required?: bool
 }
 function iCls(disabled = false) {
   return `w-full border border-primary/20 rounded-sm px-3 py-1.5 text-sm text-neutral-text bg-neutral focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${disabled ? "opacity-40 cursor-not-allowed" : ""}`;
+}
+
+// ── Delete button with inline confirm ─────────────────────────────────────
+
+function DeleteButton({
+  endpoint,
+  label,
+  cubeCount,
+  bedCount,
+  onDeleted,
+}: {
+  endpoint: string;
+  label: string;
+  cubeCount?: number;
+  bedCount?: number;
+  onDeleted: () => void;
+}) {
+  const [confirm, setConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!confirm) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setConfirm(false); setError(null);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [confirm]);
+
+  const hasLinked = (cubeCount ?? 0) > 0 || (bedCount ?? 0) > 0;
+
+  if (hasLinked) {
+    const parts = [];
+    if (cubeCount) parts.push(`${cubeCount} cube${cubeCount !== 1 ? "s" : ""}`);
+    if (bedCount) parts.push(`${bedCount} bed${bedCount !== 1 ? "s" : ""}`);
+    return (
+      <span className="text-xs text-neutral-text/30 cursor-not-allowed"
+        title={`Delete the ${parts.join(" and ")} in this dorm first`}>
+        Delete
+      </span>
+    );
+  }
+
+  if (!confirm) {
+    return (
+      <button onClick={() => setConfirm(true)}
+        className="text-xs text-red-600 hover:text-red-800 transition-colors">Delete</button>
+    );
+  }
+
+  async function doDelete() {
+    setDeleting(true); setError(null);
+    try {
+      const res = await fetch(endpoint, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Delete failed"); setDeleting(false); return; }
+      onDeleted();
+    } catch { setError("Network error"); } finally { setDeleting(false); }
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      {error && (
+        <div className="absolute bottom-full right-0 mb-1 z-10 bg-red-50 border border-red-300 text-red-700 text-xs px-3 py-2 rounded-sm w-72 shadow-sm">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 text-red-400 hover:text-red-600">✕</button>
+        </div>
+      )}
+      <div className="flex items-center gap-1.5 bg-red-50 border border-red-300 rounded-sm px-2 py-0.5">
+        <span className="text-xs text-red-700 font-medium whitespace-nowrap">Delete {label}?</span>
+        <button onClick={doDelete} disabled={deleting}
+          className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded-sm hover:bg-red-700 transition-colors disabled:opacity-50">
+          {deleting ? "…" : "Yes"}
+        </button>
+        <button onClick={() => { setConfirm(false); setError(null); }}
+          className="text-xs text-red-600 hover:text-red-800">No</button>
+      </div>
+    </div>
+  );
 }

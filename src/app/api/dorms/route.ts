@@ -1,24 +1,34 @@
 /**
- * GET  /api/dorms  — list all dorms
+ * GET  /api/dorms  — list all dorms (paginated)
  * POST /api/dorms  — create a new dorm
+ *
+ * Query params: page (default 1), limit (default 50)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const denied = await requireRole([UserRole.admin, UserRole.dorm_master]);
   if (denied) return denied;
 
-  const dorms = await prisma.dorm.findMany({
-    orderBy: { dName: "asc" },
-    include: {
-      _count: { select: { beds: true, cubes: true } },
-    },
-  });
+  const sp = request.nextUrl.searchParams;
+  const page = Math.max(1, parseInt(sp.get("page") ?? "1"));
+  const limit = Math.min(100, parseInt(sp.get("limit") ?? "50"));
+  const skip = (page - 1) * limit;
 
-  return NextResponse.json(dorms);
+  const [dorms, total] = await Promise.all([
+    prisma.dorm.findMany({
+      orderBy: { dName: "asc" },
+      include: { _count: { select: { beds: true, cubes: true } } },
+      skip,
+      take: limit,
+    }),
+    prisma.dorm.count(),
+  ]);
+
+  return NextResponse.json({ dorms, total, page, limit });
 }
 
 export async function POST(request: NextRequest) {

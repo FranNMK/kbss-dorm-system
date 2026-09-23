@@ -1,5 +1,5 @@
 /**
- * GET  /api/academic-years  — list all academic years
+ * GET  /api/academic-years  — list all academic years (includes _count.students)
  * POST /api/academic-years  — create a new academic year (admin only)
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -13,6 +13,16 @@ export async function GET() {
 
   const years = await prisma.academicYear.findMany({
     orderBy: { yearId: "desc" },
+    include: {
+      _count: {
+        select: {
+          students: true,
+          bedsAssignments: true,
+          dormSecretaries: true,
+          dormCleaners: true,
+        },
+      },
+    },
   });
 
   return NextResponse.json(years);

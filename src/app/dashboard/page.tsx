@@ -64,6 +64,13 @@ const MENU_CARDS: MenuCard[] = [
   },
   // Admin-only
   {
+    href: "/dashboard/admin/academic-years",
+    title: "Academic Years",
+    description: "Add, rename, and set the current academic year",
+    adminOnly: true,
+    icon: "📅",
+  },
+  {
     href: "/dashboard/admin/promote",
     title: "Promote Students",
     description: "Bulk-advance students to the next class",

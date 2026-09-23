@@ -18,9 +18,9 @@ const CLASS_OPTIONS = ["F3", "F4", "G10", "G11", "G12"];
 const STREAM_MAP: Record<string, string[]> = {
   F3: ["S", "N", "L", "B", "V"],
   F4: ["S", "N", "L", "B", "V"],
-  G10: ["10M", "10B", "10N", "10S", "10L"],
-  G11: ["11M", "11B", "11N", "11S", "11L"],
-  G12: ["12M", "12B", "12N", "12S", "12L"],
+  G10: ["M", "B", "N", "S", "L"],
+  G11: ["M", "B", "N", "S", "L"],
+  G12: ["M", "B", "N", "S", "L"],
 };
 const NEXT_CLASS: Record<string, string | null> = {
   F3: "F4", F4: null, G10: "G11", G11: "G12", G12: null,

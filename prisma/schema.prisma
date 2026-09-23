@@ -63,15 +63,17 @@ model AcademicYear {
 /// C_Class values: F3, F4 (8-4-4) or G10, G11, G12 (CBC).
 /// Stream values:  S, N, L, B, V (senior forms) or 10M, 10B, 10N, 10S, 10L (Grade 10), etc.
 model Student {
-  stAdmNo    String        @id @db.VarChar(20)
-  stName     String        @db.VarChar(100)
+  stAdmNo      String        @id @db.VarChar(20)
+  stName       String        @db.VarChar(100)
   /// Class code: F3 | F4 | G10 | G11 | G12
-  cClass     String        @db.VarChar(10)
+  cClass       String        @db.VarChar(10)
   /// Stream within the class, e.g. S, N, L, B, V, 10M, 10B …
-  stream     String        @db.VarChar(10)
-  yearId     Int
-  status     StudentStatus @default(active)
-  archivedAt DateTime?
+  stream       String        @db.VarChar(10)
+  /// CBC Assessment Number (e.g. A000719431). Only for G10, G11, G12 students; null for F3/F4.
+  assessmentNo String?       @db.VarChar(20)
+  yearId       Int
+  status       StudentStatus @default(active)
+  archivedAt   DateTime?
 
   year            AcademicYear     @relation(fields: [yearId], references: [yearId])
   bedsAssignments BedsAssignment[]
@@ -81,6 +83,7 @@ model Student {
   @@index([cClass, stream])
   @@index([status])
   @@index([yearId])
+  @@index([assessmentNo])
   @@map("Students")
 }
 

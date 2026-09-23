@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { EmptyState, LoadingRows, LoadingCards } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Allocation {
@@ -44,7 +45,7 @@ function AssignForm({
 
   // Load dorms once
   useEffect(() => {
-    fetch("/api/dorms").then((r) => r.json()).then(setDorms).catch(() => {});
+    fetch("/api/dorms?limit=200").then((r) => r.json()).then((d) => setDorms(d.dorms ?? d)).catch(() => {});
   }, []);
 
   // Student search — debounced, shows unallocated active students only
@@ -189,25 +190,32 @@ export default function AllocationPage() {
   const [panel, setPanel] = useState<{ mode: "assign" | "reassign"; allocation?: Allocation } | null>(null);
   const [unassigning, setUnassigning] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 50;
 
   // Load reference data once
   useEffect(() => {
-    Promise.all([fetch("/api/dorms").then((r) => r.json()), fetch("/api/academic-years").then((r) => r.json())])
-      .then(([d, y]) => { setDorms(d); setYears(y); })
+    Promise.all([
+      fetch("/api/dorms?limit=200").then((r) => r.json()),
+      fetch("/api/academic-years").then((r) => r.json()),
+    ])
+      .then(([d, y]) => { setDorms(d.dorms ?? d); setYears(y); })
       .catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
     if (filterDorm) params.set("dormCode", filterDorm);
     if (filterClass) params.set("class", filterClass);
     if (filterYear) params.set("yearId", filterYear);
     const res = await fetch(`/api/allocation?${params}`);
     const data = await res.json();
-    setAllocations(Array.isArray(data) ? data : []);
+    setAllocations(data.allocations ?? (Array.isArray(data) ? data : []));
+    setTotal(data.total ?? (data.allocations ?? data).length);
     setLoading(false);
-  }, [filterDorm, filterClass, filterYear]);
+  }, [filterDorm, filterClass, filterYear, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -276,9 +284,18 @@ export default function AllocationPage() {
           {years.map((y) => <option key={y.yearId} value={y.yearId}>{y.label}</option>)}
         </select>
         <span className="self-center text-xs text-neutral-text/50 ml-auto">
-          {loading ? "Loading…" : `${allocations.length} active allocation${allocations.length !== 1 ? "s" : ""}`}
+          {loading ? "Loading…" : `${total} active allocation${total !== 1 ? "s" : ""}`}
         </span>
       </div>
+
+      {/* ── Top pagination ──────────────────────────────────────── */}
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
 
       {/* ── Desktop table ───────────────────────────────────────── */}
       <div className="hidden md:block border border-primary/15 rounded-sm overflow-hidden">
@@ -365,6 +382,13 @@ export default function AllocationPage() {
           ))
         )}
       </div>
+      <Pagination
+        page={page}
+        totalPages={Math.ceil(total / LIMIT)}
+        total={total}
+        limit={LIMIT}
+        onPage={(p) => { setPage(p); window.scrollTo(0, 0); }}
+      />
     </div>
   );
 }

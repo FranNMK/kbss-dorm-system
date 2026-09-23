@@ -1,6 +1,7 @@
 /**
- * GET   /api/cubes/[id]  — fetch a single cube
- * PATCH /api/cubes/[id]  — update a cube
+ * GET    /api/cubes/[id]  — fetch a single cube
+ * PATCH  /api/cubes/[id]  — update a cube
+ * DELETE /api/cubes/[id]  — permanently delete a cube (blocked if it has beds)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -46,4 +47,24 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   });
 
   return NextResponse.json(updated);
+}
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const denied = await requireRole([UserRole.admin]);
+  if (denied) return denied;
+
+  const cubeId = Number(params.id);
+  const cube = await prisma.cube.findUnique({ where: { cubeId } });
+  if (!cube) return NextResponse.json({ error: "Cube not found" }, { status: 404 });
+
+  const bedCount = await prisma.bed.count({ where: { cubeId } });
+  if (bedCount > 0) {
+    return NextResponse.json(
+      { error: `Cannot delete — this cube has ${bedCount} bed${bedCount !== 1 ? "s" : ""}. Delete the beds first.`, bedCount },
+      { status: 409 }
+    );
+  }
+
+  await prisma.cube.delete({ where: { cubeId } });
+  return NextResponse.json({ deleted: true });
 }

@@ -20,10 +20,12 @@ export async function GET(request: NextRequest) {
   const dormCode = sp.get("dormCode");
   const yearId = sp.get("yearId");
   const cClass = sp.get("class");
+  const page = Math.max(1, parseInt(sp.get("page") ?? "1"));
+  const limit = Math.min(200, parseInt(sp.get("limit") ?? "50"));
+  const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = { endDate: null };
 
-  // Build nested filters
   const bedWhere: Record<string, unknown> = {};
   if (dormCode) bedWhere.dormCode = dormCode;
 
@@ -34,24 +36,29 @@ export async function GET(request: NextRequest) {
   if (Object.keys(studentWhere).length) where.student = { is: studentWhere };
   if (yearId) where.yearId = Number(yearId);
 
-  const allocations = await prisma.bedsAssignment.findMany({
-    where,
-    include: {
-      student: { select: { stAdmNo: true, stName: true, cClass: true, stream: true } },
-      bed: {
-        select: {
-          bedNo: true,
-          dormCode: true,
-          dorm: { select: { dName: true } },
-          cube: { select: { location: true } },
+  const [allocations, total] = await Promise.all([
+    prisma.bedsAssignment.findMany({
+      where,
+      include: {
+        student: { select: { stAdmNo: true, stName: true, cClass: true, stream: true } },
+        bed: {
+          select: {
+            bedNo: true,
+            dormCode: true,
+            dorm: { select: { dName: true } },
+            cube: { select: { location: true } },
+          },
         },
+        academicYear: { select: { label: true } },
       },
-      academicYear: { select: { label: true } },
-    },
-    orderBy: [{ bed: { dormCode: "asc" } }, { bed: { bedNo: "asc" } }],
-  });
+      orderBy: [{ bed: { dormCode: "asc" } }, { bed: { bedNo: "asc" } }],
+      skip,
+      take: limit,
+    }),
+    prisma.bedsAssignment.count({ where }),
+  ]);
 
-  return NextResponse.json(allocations);
+  return NextResponse.json({ allocations, total, page, limit });
 }
 
 export async function POST(request: NextRequest) {

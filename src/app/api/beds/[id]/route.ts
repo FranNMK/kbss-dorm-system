@@ -1,6 +1,7 @@
 /**
- * GET   /api/beds/[id]  — fetch a single bed
- * PATCH /api/beds/[id]  — update bed (status only; isOccupied is read-only)
+ * GET    /api/beds/[id]  — fetch a single bed
+ * PATCH  /api/beds/[id]  — update bed (status only; isOccupied is read-only)
+ * DELETE /api/beds/[id]  — permanently delete a bed (blocked if currently occupied)
  *
  * FR-11: cube-dorm consistency re-checked on any dormCode/cubeId change.
  * isOccupied is NOT patchable here — it is managed by the allocation module.
@@ -84,4 +85,27 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   });
 
   return NextResponse.json(updated);
+}
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const denied = await requireRole([UserRole.admin]);
+  if (denied) return denied;
+
+  const bed = await prisma.bed.findUnique({ where: { bedNo: params.id } });
+  if (!bed) return NextResponse.json({ error: "Bed not found" }, { status: 404 });
+
+  if (bed.isOccupied) {
+    return NextResponse.json(
+      { error: "Cannot delete an occupied bed. Unassign the student first via Bed Allocation." },
+      { status: 409 }
+    );
+  }
+
+  // Delete historical assignment records then the bed itself
+  await prisma.$transaction([
+    prisma.bedsAssignment.deleteMany({ where: { bedNo: params.id } }),
+    prisma.bed.delete({ where: { bedNo: params.id } }),
+  ]);
+
+  return NextResponse.json({ deleted: true });
 }

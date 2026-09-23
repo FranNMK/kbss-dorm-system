@@ -75,12 +75,24 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
 
   const body = await request.json();
-  const { stAdmNo, stName, cClass, stream, yearId } = body;
+  const { stAdmNo, stName, cClass, stream, yearId, assessmentNo } = body;
+
+  const CBC_CLASSES = new Set(["G10", "G11", "G12"]);
+  const isCBC = CBC_CLASSES.has(cClass?.trim());
+  // G10 assessment number is optional; only G11 and G12 require it
+  const assessmentRequired = new Set(["G11", "G12"]).has(cClass?.trim());
 
   // Validate required fields
   if (!stAdmNo?.trim() || !stName?.trim() || !cClass?.trim() || !stream?.trim() || !yearId) {
     return NextResponse.json(
       { error: "stAdmNo, stName, cClass, stream, and yearId are required" },
+      { status: 400 }
+    );
+  }
+
+  if (assessmentRequired && !assessmentNo?.trim()) {
+    return NextResponse.json(
+      { error: "assessmentNo is required for G11 and G12" },
       { status: 400 }
     );
   }
@@ -111,6 +123,7 @@ export async function POST(request: NextRequest) {
       stName: stName.trim(),
       cClass: cClass.trim(),
       stream: stream.trim(),
+      assessmentNo: isCBC ? (assessmentNo?.trim() ?? null) : null,
       yearId,
     },
     include: { year: { select: { label: true } } },

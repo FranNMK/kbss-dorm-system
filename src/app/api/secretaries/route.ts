@@ -15,22 +15,32 @@ export async function GET(request: NextRequest) {
   const dormCode = sp.get("dormCode") || undefined;
   const yearId = sp.get("yearId") ? Number(sp.get("yearId")) : undefined;
   const showAll = sp.get("showAll") === "true";
+  const page = Math.max(1, parseInt(sp.get("page") ?? "1"));
+  const limit = Math.min(200, parseInt(sp.get("limit") ?? "50"));
+  const skip = (page - 1) * limit;
 
-  const data = await prisma.dormSecretary.findMany({
-    where: {
-      ...(showAll ? {} : { isActive: true }),
-      ...(dormCode && { dormCode }),
-      ...(yearId && { yearId }),
-    },
-    include: {
-      student: { select: { stAdmNo: true, stName: true, cClass: true, stream: true } },
-      dorm: { select: { dName: true } },
-      academicYear: { select: { label: true } },
-    },
-    orderBy: [{ dormCode: "asc" }, { role: "asc" }],
-  });
+  const where = {
+    ...(showAll ? {} : { isActive: true }),
+    ...(dormCode && { dormCode }),
+    ...(yearId && { yearId }),
+  };
 
-  return NextResponse.json(data);
+  const [data, total] = await Promise.all([
+    prisma.dormSecretary.findMany({
+      where,
+      include: {
+        student: { select: { stAdmNo: true, stName: true, cClass: true, stream: true } },
+        dorm: { select: { dName: true } },
+        academicYear: { select: { label: true } },
+      },
+      orderBy: [{ dormCode: "asc" }, { role: "asc" }],
+      skip,
+      take: limit,
+    }),
+    prisma.dormSecretary.count({ where }),
+  ]);
+
+  return NextResponse.json({ data, total, page, limit });
 }
 
 export async function POST(request: NextRequest) {

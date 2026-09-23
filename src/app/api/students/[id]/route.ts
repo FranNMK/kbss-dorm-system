@@ -59,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const body = await request.json();
-  const { stName, cClass, stream, yearId } = body;
+  const { stName, cClass, stream, yearId, assessmentNo } = body;
 
   // Validate any provided fields are non-empty strings
   if (stName !== undefined && !stName?.trim()) {
@@ -79,6 +79,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
+  // assessmentNo: explicit null clears it; a string sets it; undefined = no change
+  const cbcClasses = new Set(["G10", "G11", "G12"]);
+  const effectiveClass = cClass ?? student.cClass;
+  const isCBC = cbcClasses.has(effectiveClass);
+
   const updated = await prisma.student.update({
     where: { stAdmNo: params.id },
     data: {
@@ -86,6 +91,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ...(cClass !== undefined && { cClass: cClass.trim() }),
       ...(stream !== undefined && { stream: stream.trim() }),
       ...(yearId !== undefined && { yearId }),
+      // If assessmentNo was sent in body: store it for CBC, null it out for 8-4-4
+      ...(assessmentNo !== undefined && {
+        assessmentNo: isCBC ? (assessmentNo?.trim() || null) : null,
+      }),
+      // If class changed from CBC to 8-4-4, clear assessmentNo
+      ...(cClass !== undefined && !isCBC && { assessmentNo: null }),
     },
     include: { year: { select: { label: true } } },
   });

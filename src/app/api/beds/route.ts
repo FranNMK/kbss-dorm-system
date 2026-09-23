@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
   const cubeId = sp.get("cubeId");
   const statusParam = sp.get("status");
   const occupiedParam = sp.get("occupied");
+  const page = Math.max(1, parseInt(sp.get("page") ?? "1"));
+  const limit = Math.min(200, parseInt(sp.get("limit") ?? "50"));
+  const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = {};
   if (dormCode) where.dormCode = dormCode;
@@ -30,16 +33,21 @@ export async function GET(request: NextRequest) {
   if (occupiedParam === "true") where.isOccupied = true;
   if (occupiedParam === "false") where.isOccupied = false;
 
-  const beds = await prisma.bed.findMany({
-    where,
-    orderBy: [{ dormCode: "asc" }, { bedNo: "asc" }],
-    include: {
-      dorm: { select: { dName: true } },
-      cube: { select: { location: true } },
-    },
-  });
+  const [beds, total] = await Promise.all([
+    prisma.bed.findMany({
+      where,
+      orderBy: [{ dormCode: "asc" }, { bedNo: "asc" }],
+      include: {
+        dorm: { select: { dName: true } },
+        cube: { select: { location: true } },
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.bed.count({ where }),
+  ]);
 
-  return NextResponse.json(beds);
+  return NextResponse.json({ beds, total, page, limit });
 }
 
 export async function POST(request: NextRequest) {

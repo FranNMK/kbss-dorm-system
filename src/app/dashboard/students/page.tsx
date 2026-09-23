@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { getSessionRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import StudentsTable from "@/components/students/StudentsTable";
@@ -19,7 +20,7 @@ export default async function StudentsPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Students</h1>
           <p className="text-xs text-neutral-text/50 mt-0.5">
-            Manage student records and search by class, stream, or name
+            Manage student records — upload in bulk, filter by class or stream, or add one at a time
           </p>
         </div>
         <Link
@@ -30,8 +31,10 @@ export default async function StudentsPage() {
         </Link>
       </div>
 
-      {/* Table / cards */}
-      <StudentsTable isAdmin={isAdmin} />
+      {/* Table / cards — Suspense required for useSearchParams inside StudentsTable */}
+      <Suspense fallback={<div className="text-sm text-neutral-text/50 py-8 text-center">Loading students…</div>}>
+        <StudentsTable isAdmin={isAdmin} />
+      </Suspense>
     </div>
   );
 }
